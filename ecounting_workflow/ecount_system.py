@@ -10,7 +10,7 @@ from .ballot import Ballot
 class Vote(object):
 
     def __init__(self, preferences=list()):
-        self.preferences = preferences
+        self.preferences = list(preferences)
 
     def __repr__(self):
         return "v%s" % self.preferences
@@ -18,11 +18,35 @@ class Vote(object):
 
 class VoteBatch(object):
 
-    def __init__(self, votes):
-        self.votes = votes
+    def __init__(self, batch_id, expected_size):
+        self.batch_id = batch_id
+        self._expected_size = expected_size
+
+        self._votes = list()
+
+    def add(self, vote):
+        self._votes.append(vote)
+
+    @property
+    def votes(self):
+        return self._votes
+
+    @property
+    def expected_size(self):
+        return self._expected_size
+
+    @property
+    def actual_size(self):
+        return len(self.votes)
 
 
-class BallotScannerJammedException(object):
+class BallotScannerJammedException(Exception):
+
+    def __init__(self, ballot_scanner):
+        self.ballot_scanner = ballot_scanner
+
+
+class UnReadBallotException(Exception):
 
     def __init__(self, ballot_scanner):
         self.ballot_scanner = ballot_scanner
@@ -30,44 +54,87 @@ class BallotScannerJammedException(object):
 
 class BallotScanner(object):
 
-    def __init__(self, vote_database=None, rate=1, scan_char_map=lambda p: p):
+    def __init__(self, vote_database=None, candidates=list(), rate=1, p_jam=0.01, p_reject=0.01, scan_char_map=lambda p: p):
         self.vote_database = vote_database
+        self.candidates = candidates
+
         self.rate = rate
+        self.p_jam = p_jam
+        self.p_reject = p_reject
+
         self.scan_char_map = scan_char_map
 
-        self.current_batch_id = None
-        self.recorded_votes = list()
+        self.current_vote_batch = None
+
         self.input_tray = list()
         self.reject_tray = list()
         self.accept_tray = list()
         self.jammed_ballot = None
 
-    def start_batch(self, batch_id):
-        self.current_batch_id = batch_id
+    @property
+    def jammed(self):
+        return self.jammed_ballot is not None
 
-    def finish_batch(self):
-        self.recorded_votes = list()
-        self.current_batch_id = None
-        self.vote_database.record_batch(VoteBatch(self.current_batch_id, self.recorded_votes))
+    def start_batch(self, batch_id, expected_size):
+        self.current_vote_batch = VoteBatch(batch_id, expected_size)
+
+    def load_ballots(self, ballots):
+        self.input_tray.extend(ballots)
+
+    @staticmethod
+    def _retrieve_ballots_from_tray(tray):
+        result = list(tray)
+        del tray[:]
+        return result
+
+    def retrieve_ballots_from_input_tray(self):
+        return self._retrieve_ballots_from_tray(self.input_tray)
+
+    def retrieve_ballots_from_reject_tray(self):
+        return self._retrieve_ballots_from_tray(self.reject_tray)
+
+    def retrieve_ballots_from_accept_tray(self):
+        return self._retrieve_ballots_from_tray(self.accept_tray)
+
+    def remove_jammed_ballot(self):
+        jammed_ballot = self.jammed_ballot
+        self.jammed_ballot = None
+        return jammed_ballot
+
+    def _ocr_ballot(self, ballot, random):
+        if random.random() < self.p_reject:
+            raise UnReadBallotException(self)
+        else:
+            vote_preferences = [None] * len(self.candidates)
+            for candidate, ballot_preference in zip(self.candidates, ballot.preferences):
+                scanned_preference = self.scan_char_map(ballot_preference)
+                if type(scanned_preference) is int:
+                    vote_preferences[scanned_preference] = candidate
+            return Vote(vote_preferences)
 
     def _scan_ballot(self, random):
         if self.jammed:
             raise BallotScannerJammedException(self)
-        elif random.random() < p_jam:
-            self.jammed_ballot = self.input_tray.pop()
-            raise BallotScannerJammedException(self)
-        elif random.random() < 
-
+        else:
+            next_ballot = self.input_tray.pop(0)
+            if random.random() < self.p_jam:
+                self.jammed_ballot = next_ballot
+                raise BallotScannerJammedException(self)
+            else:
+                try:
+                    vote = self._ocr_ballot(next_ballot, random)
+                    self.current_vote_batch.add(vote)
+                    self.accept_tray.append(next_ballot)
+                except UnReadBallotException:
+                    self.reject_tray.append(next_ballot)
 
     def scan_ballots(self, random):
-
         while len(self.input_tray) is not 0:
             self._scan_ballot(random)
 
-    def clear_jam(self):
-        jammed_ballot = self.jammed_ballot
-        self.jammed_ballot = None
-        return jammed_ballot
+    def finish_batch(self):
+        self.vote_database.record_batch(self.current_vote_batch)
+        self.current_vote_batch = None
 
 
 class VoteDatabase(object):
@@ -132,7 +199,7 @@ class VotePiles(object):
         self.eliminated[losing_candidate] = losing_pile
 
     def eliminate_winning_candidate(self, random):
-        while len(self.largest_pile[1]) < self.quota and len(self.eligible > 1):
+        while len(self.largest_pile[1]) < self.quota and len(self.eligible) > 1:
             self.eliminate_losing_candidate()
 
         winning_candidate, winning_pile = self.largest_pile
