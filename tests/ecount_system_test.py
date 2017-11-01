@@ -1,13 +1,16 @@
 """
 @author twsswt
 """
+
 import unittest
 
 from mock import Mock
 
 from random import Random
 
-from ecounting_workflow.ecount_system import ElectoralReformServer, Vote, VoteDatabase
+from ecounting_workflow.ecount_system import ElectoralReformServer
+from ecounting_workflow.vote_database import VoteDatabase
+from ecounting_workflow.vote import Vote
 
 
 class ElectoralReformServerTest(unittest.TestCase):

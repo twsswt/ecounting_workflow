@@ -1,3 +1,7 @@
+"""
+@author twsswt
+"""
+
 
 class Ballot(object):
 
@@ -9,14 +13,16 @@ class Ballot(object):
     def candidates(self):
         return sorted(self._preferences.keys())
 
-    def mark(self, candidate, preference):
-        if self._preferences[candidate] is None:
-            self._preferences[candidate] = preference
-        else:
-            self.overwrite(candidate, preference)
+    def mark(self, preferences):
 
-    def overwrite(self, candidate, preference):
-        self._preferences[candidate] = preference
+        for candidate, ranking in preferences.items():
+            if self._preferences[candidate] is None:
+                self._preferences[candidate] = ranking
+            else:
+                self.overwrite(candidate, ranking)
+
+    def overwrite(self, candidate, ranking):
+        self._preferences[candidate] = ranking
 
     def spoil(self, candidate, preference):
         self._preferences[candidate] = '#'
@@ -26,7 +32,7 @@ class Ballot(object):
         return map(lambda i: i[1], sorted(self._preferences.items()))
 
     def __str__(self):
-        return "b [%s]" % self.serial_number
+        return "b:%s" % self.serial_number
 
     def __repr__(self):
         return "b:%s [%s]" % (self.serial_number, self._preferences)
