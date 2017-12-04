@@ -8,7 +8,7 @@ from mock import Mock
 
 from random import Random
 
-from ecounting_workflow.ecount_system import Ballot, BallotScanner, BallotScannerJammedException, VoteDatabase
+from ecounting_workflow import Ballot, BallotScanner, BallotScannerJammedException, VoteDatabase
 
 
 class BallotScannerTest(unittest.TestCase):

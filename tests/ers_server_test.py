@@ -8,9 +8,7 @@ from mock import Mock
 
 from random import Random
 
-from ecounting_workflow.ecount_system import ElectoralReformServer
-from ecounting_workflow.vote_database import VoteDatabase
-from ecounting_workflow.vote import Vote
+from ecounting_workflow import ElectoralReformServer, Vote, VoteDatabase
 
 
 class ElectoralReformServerTest(unittest.TestCase):

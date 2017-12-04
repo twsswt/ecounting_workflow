@@ -1,6 +1,6 @@
 import unittest
 
-from ecounting_workflow.ballot import Ballot
+from ecounting_workflow import Ballot
 
 
 class BallotTestCase(unittest.TestCase):
