@@ -2,7 +2,7 @@
 @author twsswt
 """
 
-from .vote import Vote, VoteBatch
+from .ballot_image import BallotImage, BallotImageBatch
 
 
 class BallotScannerJammedException(Exception):
@@ -29,7 +29,7 @@ class BallotScanner(object):
 
         self.scan_char_map = scan_char_map
 
-        self.current_vote_batch = None
+        self.current_ballot_image_batch = None
 
         self._input_tray = list()
         self._reject_tray = list()
@@ -41,7 +41,7 @@ class BallotScanner(object):
         return self._jammed_ballot is not None
 
     def start_batch(self, batch_id, expected_size):
-        self.current_vote_batch = VoteBatch(batch_id, expected_size)
+        self.current_ballot_image_batch = BallotImageBatch(batch_id, expected_size)
 
     def load_ballots(self, ballots):
         self._input_tray.extend(ballots)
@@ -70,12 +70,10 @@ class BallotScanner(object):
         if random.random() < self.p_reject:
             raise UnReadBallotException(self)
         else:
-            vote_preferences = [None] * len(self.candidates)
-            for candidate, ballot_preference in zip(self.candidates, ballot.preferences):
-                scanned_preference = self.scan_char_map(ballot_preference)
-                if type(scanned_preference) is int:
-                    vote_preferences[scanned_preference] = candidate
-            return Vote(vote_preferences)
+            scanned_preferences = [None] * len(self.candidates)
+            for ballot_preference in ballot.preferences:
+                scanned_preferences.append(self.scan_char_map(ballot_preference))
+            return BallotImage(ballot, scanned_preferences)
 
     def _scan_ballot(self, random):
         if self.jammed:
@@ -87,8 +85,8 @@ class BallotScanner(object):
                 raise BallotScannerJammedException(self)
             else:
                 try:
-                    vote = self._ocr_ballot(next_ballot, random)
-                    self.current_vote_batch.add(vote)
+                    ballot_image = self._ocr_ballot(next_ballot, random)
+                    self.current_ballot_image_batch.add(ballot_image)
                     self._accept_tray.append(next_ballot)
                 except UnReadBallotException:
                     self._reject_tray.append(next_ballot)
@@ -98,5 +96,5 @@ class BallotScanner(object):
             self._scan_ballot(random)
 
     def finish_batch(self):
-        self.vote_database.record(self.current_vote_batch)
-        self.current_vote_batch = None
+        self.vote_database.record(self.current_ballot_image_batch)
+        self.current_ballot_image_batch = None

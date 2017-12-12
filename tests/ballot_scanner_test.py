@@ -17,7 +17,7 @@ class BallotScannerTest(unittest.TestCase):
         self.candidates = ['Alice', 'Bob', 'Charlie']
 
         def mock_record(batch):
-            self.vote_batch = batch
+            self.ballot_image_batch = batch
 
         self.vote_database = Mock(spec=VoteDatabase)
         self.vote_database.record = Mock(side_effect=mock_record)
@@ -47,15 +47,14 @@ class BallotScannerTest(unittest.TestCase):
     def test_finish_vote_batch(self):
         random_mock = Mock(spec=Random)
         random_mock.random = Mock(side_effect=[1.0, 1.0, 1.0, 1.0, 1.0, 1.0])
-
         self.ballot_scanner.load_ballots(self.ballots)
         self.ballot_scanner.start_batch('1', 3)
         self.ballot_scanner.scan_ballots(random_mock)
         self.ballot_scanner.finish_batch()
 
-        actual = map (lambda vote: vote.preferences, self.vote_batch.votes)
+        actual = map (lambda bi: bi.vote.preferences, self.ballot_image_batch.ballot_images)
 
-        expected = [[None] * 3] * 3
+        expected = [[], [], []]
 
         self.assertEquals(expected, actual)
 

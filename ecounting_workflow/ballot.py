@@ -7,7 +7,7 @@ class Ballot(object):
 
     def __init__(self, serial_number, candidates):
         self.serial_number = serial_number
-        self._preferences = { candidate:None for candidate in candidates }
+        self._preferences = {candidate: None for candidate in candidates}
 
     @property
     def candidates(self):
@@ -43,3 +43,4 @@ class BallotBatch(object):
     def __init__(self, ballots=list(), expected=0):
         self.ballots = ballots
         self.expected_= expected
+        self.red_wallet = list()
