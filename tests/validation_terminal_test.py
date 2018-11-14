@@ -1,21 +1,12 @@
-"""
-@author twsswt
-"""
-
 import unittest
 
-from mock import Mock
-
-from random import Random
-
-from ecounting_workflow import ElectoralReformServer, Vote, VoteDatabase
+from ecounting_workflow import ValidationTerminal, Vote
 
 
-class ElectoralReformServerTest(unittest.TestCase):
+class ValiationTerminalTest(unittest.TestCase):
 
     def setUp(self):
-        self.vote_database=Mock(spec=VoteDatabase)
-        self.electoral_reform_server = ElectoralReformServer(self.vote_database, 2)
+        self.validation_terminal = ValidationTerminal()
 
     def test_stv_gregory_method_elect_alice_then_bob(self):
 
@@ -34,6 +25,7 @@ class ElectoralReformServerTest(unittest.TestCase):
         ])
 
         self.assertEquals({'Alice', 'Bob'}, set(self.electoral_reform_server.get_election_result(random_mock).keys()))
+
 
 
 if __name__ == '__main__':
